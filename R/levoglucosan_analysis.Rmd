@@ -7,3 +7,47 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r, message = FALSE}
+library(tidyverse)
+library(readr)
+library(janitor)
+```
+
+```{r, message = FALSE}
+#cal data was tidied in google sheets
+cal_data <- read_csv("~/chem313/lcms_levoglucosan/data/cal_new.csv")
+
+field_data <- read_csv("~/chem313/lcms_levoglucosan/data/field_new.csv")
+```
+
+```{r}
+#calibration curve
+mod <- lm(cal_data$peak_area ~ cal_data$conc)
+slope <- mod$coefficients[2]
+intercept <- mod$coefficients[1]
+slope_std <- summary(mod)$coefficients[2,2]
+intercept_std <- summary(mod)$coefficients[1,2]
+equation <- tibble(slope, slope_std, intercept, intercept_std)
+cal <- rbind(equation)
+cal
+summary(mod)
+
+ggplot(data = cal_data, mapping = aes(x = conc, y = peak_area)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color ="red") +
+  labs(x = "[Levoglucosan] (ug/mL)",
+       y = "Peak Area",
+       title = "Calibration for Levoglucosan") +
+  theme_bw()
+
+
+```
+
+```{r}
+field_data <- field_data %>%
+  mutate(conc = (field_data$peak_area - cal$intercept)/cal$slope,
+conc_e = conc*sqrt((cal$intercept_std/cal$intercept)^2 + (cal$slope_std/cal$slope)^2))
+
+```
+
+
