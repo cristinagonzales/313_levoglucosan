@@ -44,10 +44,45 @@ ggplot(data = cal_data, mapping = aes(x = conc, y = peak_area)) +
 ```
 
 ```{r}
+#finding concentration and propagating error
 field_data <- field_data %>%
   mutate(conc = (field_data$peak_area - cal$intercept)/cal$slope,
 conc_e = conc*sqrt((cal$intercept_std/cal$intercept)^2 + (cal$slope_std/cal$slope)^2))
 
 ```
 
+```{r}
+#comparing east and west data over all time
+east_data <- field_data %>%
+  filter(str_detect(sample, "E"))
+west_data <- field_data %>%
+  filter(str_detect(sample, "W"))
+
+var.test(west_data$peak_area, east_data$peak_area) #difference is significant
+
+t.test(west_data$peak_area, east_data$peak_area, mu = 0, paired = TRUE, var.equal = FALSE)
+#difference is not significant
+```
+```{r}
+data1750 <- field_data %>%
+  filter(str_detect(sample, "1750"))
+data1950 <- field_data %>%
+  filter(str_detect(sample, "1950"))
+data2020 <- field_data %>%
+  filter(str_detect(sample, "2020"))
+
+#f test to compare standard deviations
+var.test(data1950$peak_area, data1750$peak_area) #not significant
+var.test(data2020$peak_area, data1750$peak_area) #significant
+var.test(data2020$peak_area, data1950$peak_area) #significant
+
+#unpaired t test for similar variances
+t.test(data1750$peak_area, data1950$peak_area, mu = 0, paired = FALSE, var.equal = TRUE) #significantly different (2.415 > 2.228)
+
+#paired t test for different variances
+t.test(data2020$peak_area, data1750$peak_area, mu = 0, paired = TRUE, var.equal = FALSE)
+#significantly different (2.7514 > 2.571)
+t.test(data2020$peak_area, data1950$peak_area, mu = 0, paired = TRUE, var.equal = FALSE)
+#significantly different (3.071 > 2.571)
+```
 
